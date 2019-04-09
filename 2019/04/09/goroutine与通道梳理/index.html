@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html>
+<head><meta name="generator" content="Hexo 3.8.0">
+  <meta charset="utf-8">
+  
+  <title>goroutine与通道梳理 | even&#39;s blog</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  
+    <meta name="keywords" content="Even,Even's Blog">
+  
+  <meta name="description" content="通道类型双向通道（默认）ch := make(chan int) 单向通道只能接收通道（receive-only）ch :=make (chan &amp;lt;-  string)只能发送通道（send -only）ch := make(&amp;lt;- chan string) 通道实现同步12345678910111213141516171819202122232425func printnum(w ch">
+<meta property="og:type" content="article">
+<meta property="og:title" content="goroutine与通道梳理">
+<meta property="og:url" content="http://even-wang.github.io/2019/04/09/goroutine与通道梳理/index.html">
+<meta property="og:site_name" content="even&#39;s blog">
+<meta property="og:description" content="通道类型双向通道（默认）ch := make(chan int) 单向通道只能接收通道（receive-only）ch :=make (chan &amp;lt;-  string)只能发送通道（send -only）ch := make(&amp;lt;- chan string) 通道实现同步12345678910111213141516171819202122232425func printnum(w ch">
+<meta property="og:locale" content="English">
+<meta property="og:updated_time" content="2019-04-09T08:15:26.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="goroutine与通道梳理">
+<meta name="twitter:description" content="通道类型双向通道（默认）ch := make(chan int) 单向通道只能接收通道（receive-only）ch :=make (chan &amp;lt;-  string)只能发送通道（send -only）ch := make(&amp;lt;- chan string) 通道实现同步12345678910111213141516171819202122232425func printnum(w ch">
+  
+  
+    <link rel="icon" href="/favicon.ico">
+  
+  <link href="//cdn.bootcss.com/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet" type="text/css">
+  <link rel="stylesheet" href="/css/style.css">
+  <script src="/js/pace.min.js"></script>
+  
+
+  
+  
+
+</head>
+</html>
+<body>
+  <div id="container">
+      <header id="header">
+    <div id="banner"></div>
+    <div id="header-outer">
+        <div id="header-menu" class="header-menu-pos animated">
+            <div class="header-menu-container">
+                <a href="/" class="left">
+                    <span class="site-title">Even&#39;s Blog</span>
+                </a>
+                <nav id="header-menu-nav" class="right">
+                    
+                    <a href="/">
+                        <i class="fa fa-home"></i>
+                        <span>Home</span>
+                    </a>
+                    
+                    <a href="/archives">
+                        <i class="fa fa-archive"></i>
+                        <span>Archives</span>
+                    </a>
+                    
+                    <a href="/about">
+                        <i class="fa fa-user"></i>
+                        <span>About</span>
+                    </a>
+                    
+                </nav>
+                <a class="mobile-header-menu-button">
+                    <i class="fa fa-bars"></i>
+                </a>
+            </div>
+        </div>
+        <div id="header-row">
+            <div id="logo">
+                <a href="/">
+                    <img src="/images/logo.png" alt="logo">
+                </a>
+            </div>
+            <div class="header-info">
+                <div id="header-title">
+                    
+                    <h2>
+                        Even&#39;s Blog
+                    </h2>
+                    
+                </div>
+                <div id="header-description">
+                    
+                    <h3>
+                        技术博客
+                    </h3>
+                    
+                </div>
+            </div>
+            <nav class="header-nav">
+                <div class="social">
+                    
+                        <a title="Even" target="_blank" href="//Even.com">
+                            <i class="fa fa-home fa-2x"></i></a>
+                    
+                        <a title="Github" target="_blank" href="//github.com/even-wang">
+                            <i class="fa fa-github fa-2x"></i></a>
+                    
+                        <a title="Weibo" target="_blank" href="//github.com/even-wang">
+                            <i class="fa fa-weibo fa-2x"></i></a>
+                    
+                        <a title="Twitter" target="_blank" href="//github.com/even-wang">
+                            <i class="fa fa-twitter fa-2x"></i></a>
+                    
+                </div>
+            </nav>
+        </div>
+    </div>
+</header>
+      <div class="outer">
+        <section id="main" class="body-wrap"><article id="post-goroutine与通道梳理" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-inner">
+    
+      <header class="article-header">
+        
+  
+    <h1 class="post-title" itemprop="name">
+      goroutine与通道梳理
+    </h1>
+    <div class="post-title-bar">
+      <ul>
+          
+        <li>
+          <i class="fa fa-calendar"></i>  2019-04-09
+        </li>
+        <li>
+          <i class="fa fa-eye"></i>
+          <span id="busuanzi_value_page_pv"></span>
+        </li>
+      </ul>
+    </div>
+  
+
+          
+      </header>
+    
+    <div class="article-entry post-content" itemprop="articleBody">
+      
+            
+            <h2 id="通道类型"><a href="#通道类型" class="headerlink" title="通道类型"></a>通道类型</h2><h3 id="双向通道（默认）"><a href="#双向通道（默认）" class="headerlink" title="双向通道（默认）"></a>双向通道（默认）</h3><p><code>ch := make(chan int)</code></p>
+<h3 id="单向通道"><a href="#单向通道" class="headerlink" title="单向通道"></a>单向通道</h3><p>只能接收通道（receive-only）<br><code>ch :=make (chan &lt;-  string)</code><br>只能发送通道（send -only）<br><code>ch := make(&lt;- chan string)</code></p>
+<h2 id="通道实现同步"><a href="#通道实现同步" class="headerlink" title="通道实现同步"></a>通道实现同步</h2><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line">func printnum(w chan bool)  &#123;</span><br><span class="line">	for i := 0; i &lt;10; i++&#123;</span><br><span class="line">		time.Sleep(time.Millisecond)</span><br><span class="line">		fmt.Printf(&quot;%d&quot;,i)</span><br><span class="line">	&#125;</span><br><span class="line">	w &lt;- true</span><br><span class="line"></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">func printstr(w chan bool)  &#123;</span><br><span class="line">	for i := &apos;A&apos;; i &lt;&apos;A&apos;+10; i++&#123;</span><br><span class="line">		time.Sleep(time.Millisecond)</span><br><span class="line">		fmt.Printf(&quot;%c&quot;,i)</span><br><span class="line">	&#125;</span><br><span class="line">	w &lt;- true</span><br><span class="line"></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">func main()  &#123;</span><br><span class="line">	w1,w2 := make(chan bool),make(chan bool)</span><br><span class="line">	go printnum(w1)</span><br><span class="line">	go printstr(w2)</span><br><span class="line">	&lt;- w1          //bool类型通道实现同步</span><br><span class="line">	&lt;- w2</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h2 id="消息传递"><a href="#消息传递" class="headerlink" title="消息传递"></a>消息传递</h2><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line">func thrower(c chan int)&#123;</span><br><span class="line">	for i := 0; i&lt;5; i++&#123;</span><br><span class="line">		c &lt;- i</span><br><span class="line">		fmt.Println(&quot;throw &gt;&gt;&quot;,i)</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">func catcher(c chan int) &#123;</span><br><span class="line">	for i :=0; i&lt;5; i++ &#123;</span><br><span class="line">		msg := &lt;-c</span><br><span class="line">		fmt.Println(&quot;catch &lt;&lt;&quot;,msg)</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">func main()&#123;</span><br><span class="line">	c := make(chan int)</span><br><span class="line">	go thrower(c)</span><br><span class="line">	go catcher(c)</span><br><span class="line">	time.Sleep(1000 * time.Millisecond)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h2 id="缓冲通道"><a href="#缓冲通道" class="headerlink" title="缓冲通道"></a>缓冲通道</h2><p>基于上述代码中的<br><code>c := make(chan int)</code><br>创建大小为3的有缓冲通道<br><code>c := make(chan int，3)</code></p>
+<h2 id="多个通道中选择"><a href="#多个通道中选择" class="headerlink" title="多个通道中选择"></a>多个通道中选择</h2><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line">func callerA(c chan string)&#123;</span><br><span class="line">  c &lt;- &quot;hello&quot;</span><br><span class="line">  close(c)            ##通过关闭指针替代计数器</span><br><span class="line">&#125;</span><br><span class="line">func callerB(c chan string)&#123;</span><br><span class="line">  c &lt;- &quot;world&quot;</span><br><span class="line">  close(c)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">a,b := make(chan string),make(chan string)</span><br><span class="line">go callerA(a)</span><br><span class="line">go callerB(b)</span><br><span class="line">ok1,ok2 := true,true</span><br><span class="line">for ok1 || ok2 &#123;                 ###判断指针是否关闭，替代计数器迭代</span><br><span class="line">  select &#123;</span><br><span class="line">    case msg,ok1 &lt;- a:</span><br><span class="line">      if ok1 &#123;</span><br><span class="line">        fmt.Printf(&quot;%s form A\n&quot;,msg)</span><br><span class="line">       &#125;</span><br><span class="line">     case msg,ok2&lt;-b:</span><br><span class="line">       if ok2 &#123;</span><br><span class="line">         fmt.Printf(&quot;%s from\n&quot;,msg)</span><br><span class="line">       &#125;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+            <div class="post-copyright">
+    <div class="content">
+        <p>最后更新： 2019年04月09日 16:15</p>
+        <p>原始链接： <a class="post-url" href="/2019/04/09/goroutine与通道梳理/" title="goroutine与通道梳理">http://even-wang.github.io/2019/04/09/goroutine与通道梳理/</a></p>
+        <footer>
+            <a href="http://even-wang.github.io">
+                <img src="/images/logo.png" alt="even">
+                even
+            </a>
+        </footer>
+    </div>
+</div>
+
+      
+        
+            
+<div class="page-reward">
+    <a id="rewardBtn" href="javascript:;">赏</a>
+</div>
+
+<div id="reward" class="post-modal reward-lay">
+    <a class="close" href="javascript:;" id="reward-close">×</a>
+    <span class="reward-title">
+        <i class="icon icon-quote-left"></i>
+        请我吃糖~
+        <i class="icon icon-quote-right"></i>
+    </span>
+    <div class="reward-content">
+        
+        <div class="reward-code">
+            <img id="rewardCode" src="/images/wechat_code.jpg" alt="打赏二维码">
+        </div>
+        <div class="reward-select">
+            
+            <label class="reward-select-item checked" data-id="wechat" data-wechat="/images/wechat_code.jpg">
+                <img class="reward-select-item-wechat" src="/images/wechat.png" alt="微信">
+            </label>
+            
+            
+            <label class="reward-select-item" data-id="alipay" data-alipay="/images/alipay_code.jpg">
+                <img class="reward-select-item-alipay" src="/images/alipay.png" alt="支付宝">
+            </label>
+            
+        </div>
+    </div>
+</div>
+
+
+        
+    </div>
+    <footer class="article-footer">
+        
+        
+<div class="post-share">
+    <a href="javascript:;" id="share-sub" class="post-share-fab">
+        <i class="fa fa-share-alt"></i>
+    </a>
+    <div class="post-share-list" id="share-list">
+        <ul class="share-icons">
+          <li>
+            <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://even-wang.github.io/2019/04/09/goroutine与通道梳理/&title=《goroutine与通道梳理》 — even's blog&pic=http://even-wang.github.ioimages/logo.png" data-title="微博">
+              <i class="fa fa-weibo"></i>
+            </a>
+          </li>
+          <li>
+            <a class="weixin share-sns" id="wxFab" href="javascript:;" data-title="微信">
+              <i class="fa fa-weixin"></i>
+            </a>
+          </li>
+          <li>
+            <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://even-wang.github.io/2019/04/09/goroutine与通道梳理/&title=《goroutine与通道梳理》 — even's blog&source=DTor,CTor" data-title="QQ">
+              <i class="fa fa-qq"></i>
+            </a>
+          </li>
+          <li>
+            <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://even-wang.github.io/2019/04/09/goroutine与通道梳理/" data-title="Facebook">
+              <i class="fa fa-facebook"></i>
+            </a>
+          </li>
+          <li>
+            <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《goroutine与通道梳理》 — even's blog&url=http://even-wang.github.io/2019/04/09/goroutine与通道梳理/&via=http://even-wang.github.io" data-title="Twitter">
+              <i class="fa fa-twitter"></i>
+            </a>
+          </li>
+          <li>
+            <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://even-wang.github.io/2019/04/09/goroutine与通道梳理/" data-title="Google+">
+              <i class="fa fa-google-plus"></i>
+            </a>
+          </li>
+        </ul>
+     </div>
+</div>
+<div class="post-modal wx-share" id="wxShare">
+    <a class="close" href="javascript:;" id="wxShare-close">×</a>
+    <p>扫一扫，分享到微信</p>
+    <img src="//api.qrserver.com/v1/create-qr-code/?data=http://even-wang.github.io/2019/04/09/goroutine与通道梳理/" alt="微信分享二维码">
+</div>
+
+<div class="mask"></div>
+
+        
+        <ul class="article-footer-menu">
+            
+            
+        </ul>
+        
+    </footer>
+  </div>
+</article>
+
+
+    <aside class="post-toc-pos post-toc-top" id="post-toc">
+        <nav class="post-toc-wrap">
+            <ol class="post-toc"><li class="post-toc-item post-toc-level-2"><a class="post-toc-link" href="#通道类型"><span class="post-toc-text">通道类型</span></a><ol class="post-toc-child"><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#双向通道（默认）"><span class="post-toc-text">双向通道（默认）</span></a></li><li class="post-toc-item post-toc-level-3"><a class="post-toc-link" href="#单向通道"><span class="post-toc-text">单向通道</span></a></li></ol></li><li class="post-toc-item post-toc-level-2"><a class="post-toc-link" href="#通道实现同步"><span class="post-toc-text">通道实现同步</span></a></li><li class="post-toc-item post-toc-level-2"><a class="post-toc-link" href="#消息传递"><span class="post-toc-text">消息传递</span></a></li><li class="post-toc-item post-toc-level-2"><a class="post-toc-link" href="#缓冲通道"><span class="post-toc-text">缓冲通道</span></a></li><li class="post-toc-item post-toc-level-2"><a class="post-toc-link" href="#多个通道中选择"><span class="post-toc-text">多个通道中选择</span></a></li></ol>
+        </nav>
+    </aside>
+    
+
+<nav id="article-nav">
+  
+  
+    <a href="/2019/04/04/hello-world/" id="article-nav-older" class="article-nav-link-wrap">
+      <span class="article-nav-title">Hello World</span>
+      <i class="fa fa-hand-o-right" aria-hidden="true"></i>
+    </a>
+  
+</nav>
+
+
+
+    
+</section>
+        
+      </div>
+      <footer id="footer">
+  <div class="outer">
+    <div id="footer-info" class="inner">
+      
+<p>
+    <span id="busuanzi_container_site_uv" style="display:none">
+        总访客数：<span id="busuanzi_value_site_uv"></span>
+    </span>
+    <span id="busuanzi_container_site_pv" style="display:none">
+        总访问量：<span id="busuanzi_value_site_pv"></span>
+    </span>
+</p>
+
+
+      <p>
+        Powered by  <a href="http://hexo.io/" target="_blank">Hexo</a>
+        Theme <a href="//github.com/wongminho/hexo-theme-miho" target="_blank">MiHo</a>
+      &copy; 2019 even<br>
+      </p>
+    </div>
+  </div>
+</footer>
+    <script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+<script src="//cdn.bootcss.com/jquery/3.2.1/jquery.min.js"></script>
+<script>
+  var mihoConfig = {
+      root: "http://even-wang.github.io",
+      animate: true,
+      isHome: false,
+      share: true,
+      reward: 1
+  }
+</script>
+<div class="sidebar">
+    <div id="sidebar-search" title="Search">
+        <i class="fa fa-search"></i>
+    </div>
+    <div id="sidebar-category" title="Categories">
+        <i class="fa fa-book"></i>
+    </div>
+    <div id="sidebar-tag" title="Tags">
+        <i class="fa fa-tags"></i>
+    </div>
+    <div id="sidebar-top">
+        <span class="sidebar-top-icon"><i class="fa fa-angle-up"></i></span>
+    </div>
+</div>
+<div class="sidebar-menu-box" id="sidebar-menu-box">
+    <div class="sidebar-menu-box-container">
+        <div id="sidebar-menu-box-categories">
+            
+        </div>
+        <div id="sidebar-menu-box-tags">
+            
+        </div>
+    </div>
+    <a href="javascript:;" class="sidebar-menu-box-close">&times;</a>
+</div>
+<div class="mobile-header-menu-nav" id="mobile-header-menu-nav">
+    <div class="mobile-header-menu-container">
+        <span class="title">Menus</span>
+        <ul class="mobile-header-menu-navbar">
+            
+            <li>
+                <a href="/">
+                    <i class="fa fa-home"></i><span>Home</span>
+                </a>
+            </li>
+            
+            <li>
+                <a href="/archives">
+                    <i class="fa fa-archive"></i><span>Archives</span>
+                </a>
+            </li>
+            
+            <li>
+                <a href="/about">
+                    <i class="fa fa-user"></i><span>About</span>
+                </a>
+            </li>
+            
+        </ul>
+    </div>
+    <div class="mobile-header-tag-container">
+        <span class="title">Tags</span>
+        <div id="mobile-header-container-tags">
+            
+        </div>
+    </div>
+</div>
+<div class="search-wrap">
+    <span class="search-close">&times;</span>
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="back">
+            <i class="icon icon-lg icon-chevron-left"></i>
+        </a>
+        <input class="search-field" placeholder="Search..." id="keywords">
+        <a id="search-submit" href="javascript:;">
+            <i class="fa fa-search"></i>
+        </a>
+    <div class="search-container" id="search-container">
+        <ul class="search-result" id="search-result">
+        </ul>
+    </div>
+</div>
+
+<div id="search-tpl">
+    <li class="search-result-item">
+        <a href="{url}" class="search-item-li">
+            <span class="search-item-li-title" title="{title}">{title}</span>
+        </a>
+    </li>
+</div>
+<script src="/js/search.js"></script>
+<script src="/js/main.js"></script>
+
+
+  <script src="//cdn.bootcss.com/particles.js/2.0.0/particles.min.js"></script>
+  <div id="particles"></div>
+  <script src="/js/particles.js"></script>
+
+
+
+
+
+
+
+  <link rel="stylesheet" href="//cdn.bootcss.com/animate.css/3.5.0/animate.min.css">
+  <script src="//cdn.bootcss.com/scrollReveal.js/3.0.5/scrollreveal.js"></script>
+  <script src="/js/animate.js"></script>
+
+
+  <script src="/js/pop-img.js"></script>
+  <script>
+     $(".article-entry p img").popImg();
+  </script>
+
+  </div>
+</body>
+</html>
